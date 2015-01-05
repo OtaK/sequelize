@@ -1,7 +1,214 @@
-Notice: All 1.7.x changes are present in 2.0.x aswell
+# 2.0.0-rc6
+- [BUG] Fixed issue with including by association reference and where
 
-# v1.7.0 (next)
-- [FEATURE] covers more advanced include cases with limiting and filtering
+# 2.0.0-rc5
+- [BUG] Fixed issue with subquery creating `include.where` and a paranoid main model.#2749/#2769
+- UniqueConstraintErrors will now extend from ValidationError making it possible to catch both with `.catch(ValidationError)`
+- [FEATURE] Adds `{save: false}` for belongsTo relationship setters. `user.setOrganization(organization, {save: false})` will then only set the foreign key value, but not trigger a save on `user`.
+- [FEATURE] When updating an instance `_previousDataValues` will now be updated after `afterUpdate` hooks have been run rather than before allowing you to use `changed` in `afterUpdate`
+- [BUG] Sequelize will no longer fail on a postgres constraint error not defined by Sequelize
+- [FEATURE] It's now possible to pass an association reference to include. `var Owner = Company.belongsTo(User, {as: 'owner'}; Company.findOne({include: [Owner]});`
+
+#### Backwards compatability changes
+- When updating an instance `_previousDataValues` will now be updated after `afterUpdate` hooks have been run rather than before allowing you to use `changed` in `afterUpdate`
+
+# 2.0.0-rc4
+- [INTERNALS] Update `inflection` dependency to v1.5.3
+- [FEATURE] Replaced string error messages for connection errors with error objects. [#2576](https://github.com/sequelize/sequelize/pull/2576)
+- [FEATURE] Support for updating fields on duplicate key in bulk update (mysql only) [#2692](https://github.com/sequelize/sequelize/pull/2692)
+- [FEATURE] Basic support for Microsoft SQL Server
+- [INTERNALS] Deprecate migration logic. This is now implemented in [umzug](https://github.com/sequelize/umzug) and the [CLI](https://github.com/sequelize/cli).
+- [BUG] Fixed various inconsistencies with `Instance.update` and how it behaves together with `create`, `fields` and more.
+- [BUG] Fixed crash/bug when using `include.where` together with `association.scope`
+- [BUG] Fixed support for `Instance.destroy()` and `field` for postgres.
+
+#### Backwards compatability changes
+- Some of the string error messages for connection errors have been replaced with actual error instances. Checking for connection errors should now be more consistent.
+
+# 2.0.0-rc3
+- [FEATURE] Added the possibility of removing multiple associations in 1 call [#2338](https://github.com/sequelize/sequelize/issues/2338)
+- [FEATURE] Undestroy method for paranoid models [#2540](https://github.com/sequelize/sequelize/pull/2540)
+- [FEATURE] Support for UPSERT
+- [BUG] Add support for `field` named the same as the attribute in `reload`, `bulkCreate` and `save` [#2348](https://github.com/sequelize/sequelize/issues/2348)
+- [BUG] Copy the options object in association getters. [#2311](https://github.com/sequelize/sequelize/issues/2311)
+- [BUG] `Model#destroy()` now supports `field`, this also fixes an issue with `N:M#removeAssociation` and `field`
+- [BUG] Customized error message can now be set for unique constraint that was created manually (not with sync, but e.g. with migrations) or that has fields with underscore naming. This was problem at least with postgres before.
+- [BUG] Fixed a bug where plain objects like `{ in: [...] }` were not properly converted to SQL when combined with a sequelize method (`fn`, `where` etc.). Closes [#2077](https://github.com/sequelize/sequelize/issues/2077)
+- [BUG] Made the default for array search in postgres exact comparison instead of overlap
+- [BUG] Allow logging from individual functions even though the global logging setting is false. Closes [#2571](https://github.com/sequelize/sequelize/issues/2571)
+- [BUG] Allow increment/decrement operations when using schemata
+- [BUG] Allow createTable with schema
+- [BUG] Fix some issues with findAndCount and include
+- [INTERNALS] Update `inflection` dependency to v1.5.2
+- [REMOVED] Remove query generation syntactic sugar provided by `node-sql`, as well as the dependency on that module
+
+#### Backwards compatability changes
+- When eager-loading a many-to-many association, the attributes of the through table are now accessible through an attribute named after the through model rather than the through table name singularized. i.e. `Task.find({include: Worker})` where the table name for through model `TaskWorker` is `TableTaskWorkers` used to produce `{ Worker: { ..., TableTaskWorker: {...} } }`. It now produces `{ Worker: { ..., TaskWorker: {...} } }`. Does not affect models where table name is auto-defined by Sequelize, or where table name is model name pluralized.
+- When using `Model#find()` with an `order` clause, the table name is prepended to the `ORDER BY` SQL. e.g. `ORDER BY Task.id` rather than `ORDER BY id`. The change is to avoid ambiguous column names where there are eager-loaded associations with the same column names. A side effect is that code like `Task.findAll( { include: [ User ], order: [ [ 'Users.id', 'ASC' ] ] } )` will now throw an error. This should be achieved with `Task.findAll( { include: [ User ], order: [ [ User, 'id', 'ASC' ] ] } )` instead.
+- Nested HSTORE objects are no longer supported. Use DataTypes.JSON instead.
+- In PG `where: { arr: [1, 2] }` where the `arr` column is an array will now use strict comparison (`=`) instead of the overlap operator (`&&`). To obtain the old behaviour, use `  where: { arr: { overlap: [1, 2] }}`
+- The default `fields` for `Instance#save` (when not a new record) is now an intersection of the model attributes and the changed attributes making saves more atomic while still allowing only defined attributes.
+- Syntactic sugar for query generation was removed. You will no longer be able to call Model.dataset() to generate raw sql queries
+
+# 2.0.0-rc2
+- [FEATURE] Added to posibility of using a sequelize object as key in `sequelize.where`. Also added the option of specifying a comparator
+- [FEATURE] Added countercache functionality to hasMany associations [#2375](https://github.com/sequelize/sequelize/pull/2375)
+- [FEATURE] Basic JSON support [#2314](https://github.com/sequelize/sequelize/pull/2314)
+- [BUG] Fixes regression bug with multiple hasMany between the same models with different join tables. Closes [#2316](https://github.com/sequelize/sequelize/issues/2316)
+- [BUG] Don't set autocommit in nested transactions [#2418](https://github.com/sequelize/sequelize/issues/2418)
+- [BUG] Improved `field` support
+
+# 2.0.0-rc1
+- [BUG] Fixed an issue with foreign key object syntax for hasOne and belongsTo
+- [FEATURE] Added `field` and `name` to the object form of foreign key definitions
+- [FEATURE] Added support for calling `Promise.done`, thus explicitly ending the promise chain by calling done with no arguments. Done with a function argument still continues the promise chain, to maintain BC.
+- [FEATURE] Added `scope` to hasMany association definitions, provides default values to association setters/finders [#2268](https://github.com/sequelize/sequelize/pull/2268)
+- [FEATURE] We now support transactions that automatically commit/rollback based on the result of the promise chain returned to the callback.
+- [BUG] Only try to create indexes which don't already exist. Closes [#2162](https://github.com/sequelize/sequelize/issues/2162)
+- [FEATURE] Hooks are passed options
+- [FEATURE] Hooks need not return a result - undefined return is interpreted as a resolved promise
+- [FEATURE] Added `find()` hooks
+
+#### Backwards compatability changes
+- The `fieldName` property, used in associations with a foreign key object `(A.hasMany(B, { foreignKey: { ... }})`, has been renamed to `name` to avoid confusion with `field`. 
+- The naming of the join table entry for N:M association getters is now singular (like includes)
+- Signature of hooks has changed to pass options to all hooks. Any hooks previously defined like `Model.beforeCreate(values)` now need to be `Model.beforeCreate(values, options)` etc.
+- Results returned by hooks are ignored - changes to results by hooks should be made by reference
+- `Model.destroy()` signature has been changed from `(where, options)` to `(options)`, options now take a where parameter.
+- `Model.update()` signature has been changed from `(values, where, options)` to `(values, options)`, options now take a where parameter.
+- The syntax for `Model.findOrBuild` has changed, to be more in line with the rest of the library. `Model.findOrBuild(where, defaults);` becomes `Model.findOrBuild({ where: where, defaults: defaults });`.
+
+# v2.0.0-dev13
+We are working our way to the first 2.0.0 release candidate.
+
+- [FEATURE] Added to option of setting a timezone offset in the sequelize constructor (`timezone` option). This timezone is used when initializing a connection (using `SET TIME ZONE` or equivalent), and when converting a timestamp string from the DB to a JS date with mysql (postgres stores the timezone, so for postgres we rely on what's in the DB).
+- [FEATURE] Allow setting plural and singular name on the model (`options.name` in `sequelize.define`) and in associations (`options.as`) to circumvent issues with weird pluralization.
+- [FEATURE] Added support for passing an `indexes` array in options to `sequelize.define`. [#1485](https://github.com/sequelize/sequelize/issues/1485). See API reference for details.
+- [FEATURE/INTERNALS] Standardized the output from `QueryInterface.showIndex`.
+- [FEATURE] Include deleted rows in find [#2083](https://github.com/sequelize/sequelize/pull/2083)
+- [FEATURE] Make addSingular and addPlural for n:m associations (fx `addUser` and `addUsers` now both accept an array or an instance.
+- [BUG] Hid `dottie.transform` on raw queries behind a flag (`nest`) [#2064](https://github.com/sequelize/sequelize/pull/2064)
+- [BUG] Fixed problems with transaction parameter being removed / not passed on in associations [#1789](https://github.com/sequelize/sequelize/issues/1789) and [#1968](https://github.com/sequelize/sequelize/issues/1968)
+- [BUG] Fix problem with minConnections. [#2048](https://github.com/sequelize/sequelize/issues/2048)
+- [BUG] Fix default scope being overwritten [#2087](https://github.com/sequelize/sequelize/issues/2087)
+- [BUG] Fixed updatedAt timestamp not being set in bulk create when validate = true. [#1962](https://github.com/sequelize/sequelize/issues/1962)
+- [INTERNALS] Replaced lingo with inflection
+- [INTERNALS] Removed underscore.string dependency and moved a couple of helper functions from `Utils._` to `Utils` 
+- [INTERNALS] Update dependencies
+    + validator 3.2.0 -> 3.16.1
+    + moment 2.5.0 -> 2.7.0
+    + generic-pool 2.0.4 -> 2.1.1
+    + sql 0.35.0 -> 0.39.0
+- [INTERNALS] Use a transaction inside `findOrCreate`, and handle unique constraint errors if multiple calls are issues concurrently on the same transaction
+
+#### Backwards compatability changes
+- We are using a new inflection library, which should make pluralization and singularization in general more robust. However, a couple of pluralizations have changed as a result:
+    + Person is now pluralized as people instead of persons
+- Accesors for models with underscored names are no longer camel cased automatically. For example, if you have a model with name `my_model`, and `my_other_model.hasMany(my_model)`, the getter will now be `instance_of_my_model.getMy_model` instead of `.getMyModel`. 
+- Removed support for setting sequelize.language. If your model names are not in english, use the name option provided by `sequelize.name` to defined singular and plural forms for your model.
+- Model names are now used more verbatim in associations. This means that if you have a model named `Task` (plural T), or an association specifying `{ as: 'Task' }`, the tasks will be returned as `relatedModel.Tasks` instead of `relatedModel.tasks`. For more information and how to mitigate this, see https://github.com/sequelize/sequelize/wiki/Upgrading-to-2.0#inflection-replaces-lingo-and-changes-to-naming-conventions
+- Removed the freezeAssociations option - use model and assocation names instead to provide the plural form yourself
+- Removed sequelize.language option (not supported by inflection)
+- Error handling has been refactored. Code that listens for :
+    + All Error classes properly inherit from Error and a common SequelizeBaseError base
+    + Instance Validator returns a single instance of a ValidationError which contains an errors array property. This property contains individual error items for each failed validation.
+    + ValidationError includes a `get(path)` method to find all broken validations for a path on an instance. To migrate existing error handling, switch from array indexing to using the get method:
+        
+        Old: `err.validateCustom[0]` 
+        New: `err.get('validateCustom')[0]` 
+- The syntax for findOrCreate has changed, to be more in line with the rest of the library. `Model.findOrCreate(where, defaults);` becomes `Model.findOrCreate({ where: where, defaults: defaults });`.
+       
+
+# v2.0.0-dev12
+- [FEATURE] You can now return a promise to a hook rather than use a callback
+- [FEATURE] There is now basic support for assigning a field name to an attribute `name: {type: DataTypes.STRING, field: 'full_name'}`
+- [FEATURE] It's now possible to add multiple relations to a hasMany association, modelInstance.addRelations([otherInstanceA, otherInstanceB])
+- [FEATURE] `define()` stores models in `sequelize.models` Object e.g. `sequelize.models.MyModel`
+- [FEATURE] The `set` / `add` / `has` methods for associations now allow you to pass the value of a primary key, instead of a full Instance object, like so: `user.addTask(15);`.
+- [FEATURE] Support for FOR UPDATE and FOR SHARE statements [#1777](https://github.com/sequelize/sequelize/pull/1777)
+- [FEATURE] n:m createAssocation now returns the target model instance instead of the join model instance
+- [FEATURE] Extend the `foreignKey` option for associations to support a full data type definition, and not just a string
+- [FEATURE] Extract CLI into [separate projects](https://github.com/sequelize/cli).
+- [FEATURE] Sqlite now inserts dates with millisecond precision
+- [FEATURE] Sequelize.VIRTUAL datatype which provides regular attribute functionality (set, get, etc) but never persists to database.
+- [BUG] An error is now thrown if an association would create a naming conflict between the association and the foreign key when doing eager loading. Closes [#1272](https://github.com/sequelize/sequelize/issues/1272)
+- [BUG] Fix logging options for sequelize.sync
+- [BUG] find no longer applies limit: 1 if querying on a primary key, should fix a lot of subquery issues.
+- [BUG] Transactions now use the pool so you will never go over your pool defined connection limit
+- [BUG] Fix use of Sequelize.literal in eager loading and when renaming attributes [#1916](https://github.com/sequelize/sequelize/pull/1916)
+- [BUG] Use the provided name for a unique index if one is given, instead of concating the column names together [#1944](https://github.com/sequelize/sequelize/issues/1944)
+- [BUG] Create a composite primary key for doubled linked self reference [#1891](https://github.com/sequelize/sequelize/issues/1891)
+- [INTERNALS] `bulkDeleteQuery` was removed from the MySQL / abstract query generator, since it was never used internally. Please use `deleteQuery` instead.
+
+#### Backwards compatability changes
+- Sequelize now returns promises instead of its custom event emitter from most calls. This affects methods that return multiple values (like `findOrCreate` or `findOrInitialize`). If your current callbacks do not accept the 2nd success parameter you might be seeing an array as the first param. Either use `.spread()` for these methods or add another argument to your callback: `.success(instance)` -> `.success(instance, created)`.
+- `.success()`/`.done()` and any other non promise methods are now deprecated (we will keep the codebase around for a few versions though). on('sql') persists for debugging purposes.
+- Model association calls (belongsTo/hasOne/hasMany) are no longer chainable. (this is to support being able to pass association references to include rather than model/as combinations)
+- `QueryInterface` no longer emits global events. This means you can no longer do things like `QueryInterface.on('showAllSchemas', function ... `
+- `sequelize.showAllSchemas` now returns an array of schemas, instead of an array containinig an array of schemas
+- `sequelize.transaction()` now returns a promise rather than a instance of Sequelize.Transaction
+- `bulkCreate`, `bulkUpdate` and `bulkDestroy` (and aliases) now take both a `hooks` and an `individualHooks` option, `hooks` defines whether or not to run the main hooks, and `individualHooks` defines whether to run hooks for each instance affected.
+- It is no longer possible to disable pooling, disable pooling will just result in a 1/1 pool.
+
+# v2.0.0-dev11
+### Caution: This release contains many changes and is highly experimental
+- [PERFORMANCE] increased build performance when using include, which speeds up findAll etc.
+- [BUG] Made it possible to use HSTORE both in attribute: HSTORE and attribute: { type: HSTORE } form. Thanks to @tomchentw [#1458](https://github.com/sequelize/sequelize/pull/1458)
+- [FEATURE] n:m now marks the columns of the through table as foreign keys and cascades them on delete and update by default.
+- [FEATURE] 1:1 and 1:m marks columns as foreign keys, and sets them to cascade on update and set null on delete. If you are working with an existing DB which does not allow null values, be sure to override those options, or disable them completely by passing constraints: false to your assocation call (`M1.belongsTo(M2, { constraints: false})`).
+- [BUG] Removed the hard dependency on pg, allowing users to use pg.js
+- [BUG] Fixed a bug with foreign keys pointing to attributes that were not integers. Now your primaryKey can be a string, and associations will still work. Thanks to @fixe [#1544](https://github.com/sequelize/sequelize/pull/1544)
+- [BUG] Fix a case where createdAt timestamp would not be set when updatedAt was disabled  Thanks to @fixe [#1543](https://github.com/sequelize/sequelize/pull/1543)
+- [BUG] Fix a case where timestamps were not being write protected in `set` when underscored=true. janmeier [#1523](https://github.com/sequelize/sequelize/pull/1523)
+- [FEATURE/BUG] Prefetching/includes now fully support schemas
+- [FEATURE] Centralize logging. [#1566](https://github.com/sequelize/sequelize/pull/1566)
+- [FEATURE/BUG] hstore values are now parsed on find/findAll. Thanks to @nunofgs [#1560](https://github.com/sequelize/sequelize/pull/1560)
+- [FEATURE] Read cli options from a file. Thanks to @codeinvain  [#1540](https://github.com/sequelize/sequelize/pull/1540)
+
+#### Backwards compatability changes
+- The `notNull` validator has been removed, use the Schema's `allowNull` property.
+- All Validation errors now return a sequelize.ValidationError which inherits from Error.
+- selectedValues has been removed for performance reasons, if you depend on this, please open an issue and we will help you work around it.
+- foreign keys will now correctly be based on the alias of the model
+  - if you have any 1:1 relations where both sides use an alias, you'll need to set the foreign key, or they'll each use a different foreign key based on their alias.
+- foreign keys for non-id primary keys will now be named for the foreign key, i.e. pub_name rather than pub_id
+  - if you have non-id primary keys you should go through your associations and set the foreignKey option if relying on a incorrect _id foreign key
+- syncOnAssocation has been removed. It only worked for n:m, and having a synchronous function (hasMany) that invokes an asynchronous function (sync) without returning an emitter does not make a lot of sense. If you (implicitly) depended on this feature, sequelize.sync is your friend. If you do not want to do a full sync, use custom through models for n:m (`M1.hasMany(M2, { through: M3})`) and sync the through model explicitly.
+- Join tables will be no longer be paranoid (have a deletedAt timestamp added), even though other models are.
+- All tables in select queries will now be aliased with the model names to be support schemas. This will affect people stuff like `where: {'table.attribute': value}
+
+# v1.7.10
+- [FEATURE] ilike support for postgres [#2122](https://github.com/sequelize/sequelize/pull/2122)
+- [FEATURE] distinct option for count [#2079](https://github.com/sequelize/sequelize/pull/2079)
+- [BUG] various fixes
+
+# v1.7.9
+- [BUG] fixes issue with custom primary keys and N:M join tables [#1929](https://github.com/sequelize/sequelize/pull/1923)
+
+# v1.7.8
+- [FEATURE] adds rlike support for mysql
+
+# v1.7.7
+- [BUG] fixes issue where count/findAndCountAll would throw on empty rows [#1849](https://github.com/sequelize/sequelize/pull/1849)
+
+# v1.7.6
+- [BUG] fixes issue where primary key is also foreign key [#1818](https://github.com/sequelize/sequelize/pull/1818)
+
+# v1.7.5
+- [BUG] fixes bug with some methods relying on table information throwing strange errors [#1686](https://github.com/sequelize/sequelize/pull/1686)
+
+# v1.7.3
+- [BUG] fixes foreign key types for hasMany
+
+# v1.7.2
+- [BUG] fixes transactions support for 1-to-1 association setters.
+
+# v1.7.1
+- [BUG] fixes issue where relations would not use transactions probably in adders/setters.
+
+# v1.7.0
+- [FEATURE] covers more advanced include cases with limiting and filtering (specifically cases where a include would be in the subquery but its child include wouldnt be, for cases where a 1:1 association had a 1:M association as a nested include)
+- [BUG] fixes issue where connection would timeout before calling COMMIT resulting in data never reaching the database [#1429](https://github.com/sequelize/sequelize/pull/1429)
 
 # v1.7.0-rc9
 - [PERFORMANCE] fixes performance regression introduced in rc7
@@ -59,6 +266,9 @@ Notice: All 1.7.x changes are present in 2.0.x aswell
 - [BUG] fixes bug where through models created by N:M associations would inherit hooks [#1263](https://github.com/sequelize/sequelize/issues/1263)
 - [FEATURE] .col()/.literal()/etc now works with findAll [#1249](https://github.com/sequelize/sequelize/issues/1249)
 - [BUG] now currectly handles connection timeouts as errors [#1207](https://github.com/sequelize/sequelize/issues/1207)
+
+# v2.0.0 (alpha1) #
+- [FEATURE] async validations. [#580](https://github.com/sequelize/sequelize/pull/580). thanks to Interlock
 
 # v1.7.0-rc1
 - [FEATURE] instance.createAssociationInstance functionality added [#1213](https://github.com/sequelize/sequelize/pull/1213)
@@ -435,4 +645,3 @@ None
 - first stable version
 - implemented all basic functions
 - associations are working
-
