@@ -59,7 +59,6 @@ describe(Support.getTestDialectTeaser('DataTypes'), function() {
     [Sequelize.CHAR(12).BINARY, 'CHAR(12).BINARY', 'CHAR(12) BINARY'],
     [Sequelize.CHAR.BINARY, 'CHAR(255).BINARY', 'CHAR(255) BINARY'],
 
-    [Sequelize.TEXT, 'TEXT', 'TEXT'],
     [Sequelize.DATE, 'DATE', 'DATETIME'],
     [Sequelize.NOW, 'NOW', 'NOW'],
     [Sequelize.UUID, 'UUID', 'UUID'],
@@ -69,6 +68,11 @@ describe(Support.getTestDialectTeaser('DataTypes'), function() {
     [Sequelize.BLOB('tiny'), 'BLOB(\'tiny\')', 'TINYBLOB'],
     [Sequelize.BLOB('medium'), 'BLOB(\'medium\')', 'MEDIUMBLOB'],
     [Sequelize.BLOB('long'), 'BLOB(\'long\')', 'LONGBLOB'],
+
+    [Sequelize.TEXT, 'TEXT', 'TEXT'],
+    [Sequelize.TEXT('tiny'), 'TEXT(\'tiny\')', 'TINYTEXT'],
+    [Sequelize.TEXT('medium'), 'TEXT(\'medium\')', 'MEDIUMTEXT'],
+    [Sequelize.TEXT('long'), 'TEXT(\'long\')', 'LONGTEXT'],
 
     [Sequelize.INTEGER, 'INTEGER', 'INTEGER'],
     [Sequelize.INTEGER.UNSIGNED, 'INTEGER.UNSIGNED', 'INTEGER UNSIGNED'],
@@ -108,6 +112,10 @@ describe(Support.getTestDialectTeaser('DataTypes'), function() {
     it('transforms "' + test[1] + '" to "' + test[2] + '"', function(done) {
       if (Support.getTestDialect() === 'mssql' && test[1] === 'STRING') {
         test[2] = 'NVARCHAR(255)';
+      }
+
+      if (test[1].substr(0, 4) === 'TEXT' && ['mysql', 'mariadb'].indexOf(Support.getTestDialect()) === -1) {
+        test[2] = 'TEXT';
       }
 
       expect(test[0].toString()).to.equal(test[2]);
